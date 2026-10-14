@@ -6,7 +6,7 @@ TimeFrame OS (vMF) เป็นเครื่องมือสำหรับ�
 
 - ดาวน์โหลด snapshot XLSX จาก Reference Sheet ที่กำหนดไว้
 - ตรวจสอบโครงสร้างและข้อมูลพื้นฐานของ snapshot
-- ค้นหาและประมวลผลกองทุนตามคำสั่ง `UPDATE` หรือ `UPDATE/<AKA>`
+- ดาวน์โหลดข้อมูลล่าสุด ประมวลผล MPTM และจัดกลุ่มกองทุนตามสถานะ
 - ดึง NAV และข้อมูล PTR จาก SEC Open API แบบ read-only
 - คำนวณ signals พื้นฐานและแสดงรายงานใน Terminal พร้อมลิงก์ Finnomena
 - เก็บ snapshot ที่ดาวน์โหลดไว้ใน `downloads/` เพื่อให้ตรวจสอบข้อมูลชุดที่ใช้ได้
@@ -41,9 +41,9 @@ URL ต้องอ่านได้โดยไม่ลงชื่อเข�
 | คำสั่ง | วิธีใช้ | ผลลัพธ์ |
 |---|---|---|
 | `START @README.md` | พิมพ์ในแชต | อ่าน README และทบทวน guideline ก่อนรอคำสั่ง |
-| `UPDATE` | `./update.sh` | ดาวน์โหลด snapshot ตรวจข้อมูล และแสดงรายงานกองทุน |
+| `UPDATE` | `./update.sh` | ดาวน์โหลดข้อมูลล่าสุด + ประมวลผล MPTM + ตรวจ `Liquidity(PTR (latest Factsheet))` |
 | `UPDATE/<AKA>` | `./update.sh UPDATE/B-INNOTECH` | แสดงรายงานเฉพาะกองทุนที่ระบุ |
-| `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อและแสดงผลสูงสุด 10 อันดับ |
+| `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อและแสดงผลสูงสุด 25 อันดับ |
 | `REVIEW` | พิมพ์ในแชต | ทบทวน guideline อีกครั้ง |
 
 ## 📌 ข้อมูลสำคัญ
@@ -73,16 +73,25 @@ URL ต้องอ่านได้โดยไม่ลงชื่อเข�
 |---|---|---|
 | ส่วนสรุปรวม | `AKA / LAST_CANDLE / UPDATED / PROJECT ID` | ใช้ metadata จากข้อมูลที่ดาวน์โหลดและ SEC API ล่าสุด |
 | ตารางรายงาน | Markdown table | ใช้หัวคอลัมน์ตามที่กำหนดแน่นอน |
-| กองทุนทุกแถว | Markdown link Finnomena | ใช้ `https://www.finnomena.com/fund/<AKA>/graph` |
+| กองทุนในกลุ่ม MPTM | Markdown link Finnomena | ใช้ `https://www.finnomena.com/fund/<AKA>/graph` |
 | Warning | ข้อความเตือนตามจริง | ระบุเมื่อดาวน์โหลดหรือดึงข้อมูล SEC ไม่สำเร็จ |
 
 ### 1) รูปแบบ `UPDATE`
 
 ```text
-สรุปข้อมูลกองทุน — <จำนวน> กองทุน
-| AKA | PROJECT ID | RSI(W) | RSI(D) | MACD Δ(W) | NAV | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | PTR (latest Factsheet) |
-|---|---|---:|---:|---:|---:|---|---|---|---|---|---|
+AKA         : <AKA>
+LAST_CANDLE : <วันที่จาก snapshot>
+UPDATED     : <เวลาจาก snapshot>
+PROJECT ID  : <PROJECT ID>
+
+🟢 BUY CONFIRMED — <จำนวน> กองทุน (TOP 25)
+🟡 EARLY/WATCH — <จำนวน> กองทุน (TOP 25)
+🟠 PULLBACK ZONE — <จำนวน> กองทุน (TOP 10)
+🔴 OVEREXTENDED — <จำนวน> กองทุน (TOP 10)
+⚪ WAIT/RETEST — <จำนวน> กองทุน
 ```
+
+กลุ่ม `BUY CONFIRMED` และ `EARLY/WATCH` แสดงสูงสุด 25 อันดับ, `PULLBACK ZONE` และ `OVEREXTENDED` แสดงสูงสุด 10 อันดับ เป็น Markdown table พร้อมลิงก์ Finnomena ส่วน `WAIT/RETEST` แสดงเฉพาะหัวข้อและจำนวน
 
 ### 2) รูปแบบ `UPDATE/<AKA>`
 
@@ -100,14 +109,14 @@ PROJECT ID  : <PROJECT ID>
 ### 3) รูปแบบ `CANDIDATE`
 
 ```text
-ผลการค้นหา CANDIDATE (PRE-ENTRY-Like Pattern) — <n> เหรียญ
+ผลการค้นหา CANDIDATE (PRE-ENTRY-Like Pattern) — <n> กองทุน
 ผ่านเกณฑ์ CANDIDATE 7 ข้อ เรียงตาม MACD Delta (W) สูงสุด — รอ 1H Trigger ยืนยัน
-| # | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet)) |
+| # | กองทุน | PROJECT ID | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet)) |
 |---:|---|---|---:|---:|---|---|---|
-| 1 | [<AKA>](https://www.tradingview.com/symbols/<AKA>/) | <Tier> | <ราคา> | <MACD Δ(W)> | <Entry Zone> | <1H Trigger> | <PTR หรือ ⚫ N/A> |
+| 1 | [<AKA>](https://www.finnomena.com/fund/<AKA>/graph) | <PROJECT ID> | <ราคา> | <MACD Δ(W)> | <Entry Zone> | <1H Trigger> | <PTR หรือ ⚫ N/A> |
 ```
 
-`n` คือจำนวนรายการทั้งหมดที่ผ่านเกณฑ์ก่อนจำกัดการแสดงผล รายงานจะแสดงไม่เกิน 10 อันดับและเรียง `MACD Δ(W)` จากมากไปน้อย ชื่อรายการเป็นลิงก์ TradingView ค่า `Tier` ใช้ `PROJECT ID` โดยตรง ส่วน `Liquidity(PTR (latest Factsheet))` ใช้ค่า `portfolio_turnover_ratio` ล่าสุดจาก SEC API หรือ `⚫ N/A` เมื่อไม่มีข้อมูลยืนยัน
+`n` คือจำนวนรายการทั้งหมดที่ผ่านเกณฑ์ก่อนจำกัดการแสดงผล รายงานจะแสดงไม่เกิน 25 อันดับและเรียง `MACD Δ(W)` จากมากไปน้อย ชื่อรายการเป็นลิงก์ Finnomena ส่วน `Liquidity(PTR (latest Factsheet))` ใช้ค่า `portfolio_turnover_ratio` ล่าสุดจาก SEC API หรือ `⚫ N/A` เมื่อไม่มีข้อมูลยืนยัน
 
 ## ✅ ข้อกำหนดบังคับเรื่องการแสดงผล (Output Contract)
 
@@ -123,7 +132,7 @@ PROJECT ID  : <PROJECT ID>
 
 ## 📊 รูปแบบรายงานและเกณฑ์
 
-`UPDATE` ปกติแสดงตารางกองทุนทั้งหมดที่พบใน snapshot ตาม schema ของระบบ
+`UPDATE` ดาวน์โหลดข้อมูลล่าสุด ประมวลผล MPTM จาก signals ใน snapshot, ตรวจ PTR จาก SEC API และจัดกลุ่มเป็น `BUY CONFIRMED`, `EARLY/WATCH`, `PULLBACK ZONE`, `OVEREXTENDED` และ `WAIT/RETEST`
 
 `UPDATE/<AKA>` แสดง metadata ของแต่ละกองทุนตามลำดับที่ขอ แล้วแสดง `🔵 SPECIFIED FUND — n รายการ` พร้อมตาราง `AKA | PROJECT ID | RSI(W) | RSI(1H) | MACD Δ(W) | NAV | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | PTR (latest Factsheet)`
 
@@ -139,11 +148,38 @@ PROJECT ID  : <PROJECT ID>
 6. `EMA9(W) > EMA21(W)`
 7. `SIGNAL_VOLUME` เป็น `BUY` อย่างน้อยหนึ่ง timeframe ใน `W/D/4H/1H`
 
-ผลลัพธ์ใช้คอลัมน์ตามลำดับ `# | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))` โดย `Tier = PROJECT ID` และแสดงคำเตือนท้ายรายงานเมื่อ SEC API ไม่ส่งข้อมูล PTR
+ผลลัพธ์ของ UPDATE ใช้คอลัมน์ `PROJECT ID`, ใช้ลิงก์ Finnomena และตรวจ `Liquidity(PTR (latest Factsheet))` จาก SEC API ล่าสุด โดยไม่คาดเดาค่าเมื่อไม่มีข้อมูล
+
+### 🔍 ระบบคัดกรอง MPTM
+
+- **Direction Filter**: ตรวจสอบทิศทางภาพใหญ่ (`W → D`)
+- **Momentum Acceleration**: ตรวจวัด `MACD_HIST_DELTA(W)`
+- **Volume Confirmation**: ยืนยันด้วย `SIGNAL_VOLUME` ที่เป็น `BUY`
+- **Structure Shift**: ใช้ `ENTRY_ZONE(4H)` และ `ENTRY_TRIGGER(1H)` จาก snapshot
+- **Relative Strength**: ใช้ signals ที่ Reference Sheet จัดเตรียมไว้เมื่อมี
+- **Liquidity Guard**: ตรวจ `portfolio_turnover_ratio` จาก SEC Factsheet ล่าสุด
+
+### 📊 รายงาน Excel 3 ชีท
+
+ทุกครั้งที่รัน `UPDATE` จะสร้าง `downloads/All-ThaiMutualFunds-MTFS_output.xlsx` โดยบันทึกตามขีดจำกัดของแต่ละกลุ่ม:
+
+1. **Latest Snapshot**: รายการ MPTM ที่แสดงในรอบล่าสุดพร้อมสถานะและ PTR
+2. **Master Signal Log**: ประวัติสัญญาณรายรอบ
+3. **REF.**: ลิงก์ Reference Sheet ต้นทาง
+
+### 🎯 การจำแนกสถานะ
+
+- 🟢 **BUY CONFIRMED**: ผ่าน MPTM และ `ENTRY_TRIGGER(1H)` ยืนยัน
+- 🟡 **EARLY/WATCH**: ผ่าน MPTM แต่รอ 1H Trigger
+- 🟠 **PULLBACK ZONE**: `W/D/4H/1H = UP` แต่ `RSI(1H) < 50`
+- 🔴 **OVEREXTENDED**: `RSI(D) ≥ 70` ห้ามไล่ราคา
+- ⚪ **WAIT/RETEST**: โครงสร้างยังไม่พร้อม
+
+ผลการจัดกลุ่มอ้างอิงข้อมูล MPTM ล่าสุด ไม่ถือเป็นคำสั่งซื้อขายอัตโนมัติ และควรรอ 1H Trigger ตามเงื่อนไขในคู่มือก่อนพิจารณาลงทุน สามารถติดตามการแจ้งเตือนได้ที่ [TimeFrame FUNDS Notify](https://t.me/TimeFrameFUNDSnotify)
 
 ## 💧 แหล่งข้อมูล PTR
 
-PTR ใช้ค่า `portfolio_turnover_ratio` จาก SEC Factsheet ของกองทุนผ่าน SEC Open API แบบ read-only หากอ่านไม่ได้หรือไม่มีข้อมูลจะแสดง `N/A` โดยไม่ใช้ค่าจาก snapshot เก่ามาทดแทน
+PTR ใช้ค่า `portfolio_turnover_ratio` จาก SEC Factsheet ของกองทุนผ่าน SEC Open API แบบ read-only หากอ่านไม่ได้หรือไม่มีข้อมูลจะแสดง `⚫ N/A` โดยไม่ใช้ค่าจาก snapshot เก่ามาทดแทน
 
 ## 🛡️ ขอบเขตและข้อควรระวัง
 

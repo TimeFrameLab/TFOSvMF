@@ -18,7 +18,7 @@ Logic ทั้งหมดอยู่ใน [fund_update.sh](./fund_update.sh)
 | คำสั่ง | วิธีใช้ | หน้าที่ |
 |---|---|---|
 | `START @README.md` | พิมพ์ในแชต | อ่าน README และ guideline ก่อนรอคำสั่ง |
-| `UPDATE` | `./update.sh` | ดาวน์โหลด snapshot ใหม่ ดึง NAV/PTR และแสดงรายงานกองทุน |
+| `UPDATE` | `./update.sh` | ดาวน์โหลดข้อมูลล่าสุด + ประมวลผล MPTM + ตรวจ `Liquidity(PTR (latest Factsheet))` |
 | `UPDATE/<AKA>` | `./update.sh UPDATE/B-INNOTECH` | แสดงรายงานเฉพาะกองทุนที่ระบุ |
 | `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อจาก snapshot |
 | `REVIEW` | พิมพ์ในแชต | ทบทวน guideline อีกครั้ง |
@@ -33,11 +33,12 @@ Logic ทั้งหมดอยู่ใน [fund_update.sh](./fund_update.sh)
 2. ดาวน์โหลด Google Sheets XLSX ใหม่
 3. ตรวจพบคอลัมน์ `AKA` และ `PROJECT ID` ภายใน 10 แถวแรก
 4. เลือกกองทุนทั้งหมดหรือเลือกตาม `UPDATE/<AKA>`
-5. เรียก SEC NAV API ย้อนหลังประมาณ 5 ปีต่อ `PROJECT ID`
-6. คำนวณ RSI และ MACD delta จาก NAV
-7. ใช้ bucket NAV ประมาณ 30 วันเป็นชุดข้อมูล W
-8. เรียก SEC Factsheet statistics เพื่ออ่าน `portfolio_turnover_ratio`
-9. แสดง Markdown report ตาม schema ของคำสั่ง
+5. ประมวลผล MPTM จาก signal columns ใน snapshot
+6. จัดกลุ่มเป็น `BUY CONFIRMED`, `EARLY/WATCH`, `PULLBACK ZONE`, `OVEREXTENDED` และ `WAIT/RETEST`
+7. เรียก SEC Factsheet statistics เพื่ออ่าน `portfolio_turnover_ratio` ของรายการที่แสดง
+8. สร้างรายงาน Markdown และ Excel 3 ชีท
+
+การคำนวณ NAV/RSI/MACD จาก SEC API ยังใช้ใน `UPDATE/<AKA>` เพื่อแสดงรายละเอียดกองทุนที่ระบุ ส่วน `UPDATE` ใช้ MPTM signals จาก snapshot ล่าสุดเป็นหลัก
 
 ### CANDIDATE
 
@@ -46,8 +47,8 @@ Logic ทั้งหมดอยู่ใน [fund_update.sh](./fund_update.sh)
 1. ตรวจว่ามีคอลัมน์สำหรับเกณฑ์ Candidate และ entry labels
 2. ตรวจแต่ละแถวตามเกณฑ์ 7 ข้อ
 3. เรียงผู้ผ่านตาม `MACD_HIST_DELTA(W)` จากมากไปน้อย
-4. แสดงจำนวนผู้ผ่านทั้งหมด แต่แสดงตารางไม่เกิน 10 อันดับ
-5. ใช้ `PROJECT ID` เป็นค่า `Tier`
+4. แสดงจำนวนผู้ผ่านทั้งหมด แต่แสดงตารางไม่เกิน 25 อันดับ
+5. แสดง `PROJECT ID` เป็นคอลัมน์ระบุ fund
 6. เรียก SEC Factsheet statistics ล่าสุดเฉพาะรายการที่แสดง
 7. แสดง `⚫ N/A` และคำเตือนเมื่อไม่มี PTR ที่ยืนยันได้
 
@@ -74,13 +75,36 @@ Logic ทั้งหมดอยู่ใน [fund_update.sh](./fund_update.sh)
 
 ชื่อ timeframe เป็น label เชิงโมเดล ไม่ได้หมายความว่า SEC มี NAV intraday หรือข้อมูล OHLCV intraday ให้ระบบโดยตรง
 
+## 🔍 ระบบคัดกรอง MPTM
+
+- **Direction Filter**: ตรวจสอบทิศทางภาพใหญ่ (`W → D`)
+- **Momentum Acceleration**: ตรวจวัด `MACD_HIST_DELTA(W)`
+- **Volume Confirmation**: ยืนยันด้วย `SIGNAL_VOLUME` ที่เป็น `BUY`
+- **Structure Shift**: ใช้ `ENTRY_ZONE(4H)` และ `ENTRY_TRIGGER(1H)` จาก snapshot
+- **Relative Strength**: ใช้ signals ที่ Reference Sheet จัดเตรียมไว้เมื่อมี
+- **Liquidity Guard**: ตรวจ `portfolio_turnover_ratio` จาก SEC Factsheet ล่าสุด
+
+### 🎯 การจำแนกสถานะ
+
+- 🟢 **BUY CONFIRMED**: ผ่าน MPTM และ `ENTRY_TRIGGER(1H)` ยืนยัน
+- 🟡 **EARLY/WATCH**: ผ่าน MPTM แต่รอ 1H Trigger
+- 🟠 **PULLBACK ZONE**: `W/D/4H/1H = UP` แต่ `RSI(1H) < 50`
+- 🔴 **OVEREXTENDED**: `RSI(D) ≥ 70` ห้ามไล่ราคา
+- ⚪ **WAIT/RETEST**: โครงสร้างยังไม่พร้อม และแสดงเฉพาะหัวข้อกับจำนวน
+
 ## 📊 Output Contract
 
 ### UPDATE
 
-ใช้ลิงก์ Finnomena และคอลัมน์ตามลำดับนี้:
+`UPDATE` ต้องแสดง metadata จาก snapshot ล่าสุด แล้วแสดงกลุ่ม MPTM ตามลำดับ `BUY CONFIRMED`, `EARLY/WATCH`, `PULLBACK ZONE`, `OVEREXTENDED` และ `WAIT/RETEST`
 
-`AKA | PROJECT ID | RSI(W) | RSI(D) | MACD Δ(W) | NAV | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | PTR (latest Factsheet)`
+กลุ่ม `BUY CONFIRMED` และ `EARLY/WATCH` แสดงสูงสุด 25 อันดับ, `PULLBACK ZONE` และ `OVEREXTENDED` แสดงสูงสุด 10 อันดับ เป็น Markdown table พร้อมลิงก์ Finnomena ส่วน `WAIT/RETEST` แสดงเฉพาะหัวข้อและจำนวน
+
+คอลัมน์หลักของตารางใช้:
+
+`กองทุน | PROJECT ID | RSI(W) | RSI(D) | MACD Δ(W) | ราคา (THB) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))`
+
+ชื่อรายการใช้ `https://www.finnomena.com/fund/<AKA>/graph`
 
 ### UPDATE/<AKA>
 
@@ -99,22 +123,30 @@ PROJECT ID  : <PROJECT ID>
 
 `https://www.finnomena.com/fund/<AKA>/graph`
 
+### 📊 รายงาน Excel 3 ชีท
+
+ทุกครั้งที่รัน `UPDATE` สร้าง `downloads/All-ThaiMutualFunds-MTFS_output.xlsx` โดยบันทึกตามขีดจำกัดของแต่ละกลุ่ม:
+
+1. **Latest Snapshot**: รายการ MPTM ที่แสดงในรอบล่าสุดพร้อมสถานะและ PTR
+2. **Master Signal Log**: ประวัติสัญญาณรายรอบ
+3. **REF.**: ลิงก์ Reference Sheet ต้นทาง
+
 ### CANDIDATE
 
 ต้องแสดงหัวข้อและคำอธิบายตามนี้:
 
 ```text
-ผลการค้นหา CANDIDATE (PRE-ENTRY-Like Pattern) — n เหรียญ
+ผลการค้นหา CANDIDATE (PRE-ENTRY-Like Pattern) — n กองทุน
 ผ่านเกณฑ์ CANDIDATE 7 ข้อ เรียงตาม MACD Delta (W) สูงสุด — รอ 1H Trigger ยืนยัน
 ```
 
-ตารางต้องใช้คอลัมน์ตามลำดับนี้และแสดงไม่เกิน 10 อันดับ:
+ตารางต้องใช้คอลัมน์ตามลำดับนี้และแสดงไม่เกิน 25 อันดับ:
 
-`# | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))`
+`# | กองทุน | PROJECT ID | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))`
 
-- `n` คือจำนวนผู้ผ่านเกณฑ์ทั้งหมดก่อนจำกัด 10 อันดับ
-- ชื่อรายการเป็นลิงก์ TradingView รูปแบบ `https://www.tradingview.com/symbols/<AKA>/`
-- `Tier = PROJECT ID`
+- `n` คือจำนวนผู้ผ่านเกณฑ์ทั้งหมดก่อนจำกัด 25 อันดับ
+- ชื่อรายการเป็นลิงก์ Finnomena รูปแบบ `https://www.finnomena.com/fund/<AKA>/graph`
+- คอลัมน์ `PROJECT ID` ใช้ระบุ fund โดยตรง
 - `Liquidity(PTR (latest Factsheet))` ใช้ `portfolio_turnover_ratio` ล่าสุดจาก SEC Factsheet
 - หากไม่มี PTR ที่ยืนยันได้ ให้แสดง `⚫ N/A` และคำเตือนท้ายรายงาน
 - ห้ามเพิ่ม metadata `ADVANC` หรือกลุ่มรายงานของ UPDATE ใน CANDIDATE
