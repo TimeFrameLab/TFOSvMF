@@ -1,110 +1,66 @@
-# TimeFrame OS vS (SET)
+# TimeFrame OS vMF — Thai Mutual Fund
 
-## 📋 ภาพรวม
+CLI แบบ read-only สำหรับอ่านรายชื่อกองทุนจาก Google Sheets, ดึง NAV ย้อนหลังจาก SEC Open API แล้วแสดงสรุป Multi-Timeframe ใน Terminal โดยไม่เขียนกลับชีตและไม่ส่งคำสั่งซื้อขาย
 
-TimeFrame OS (vS) เป็นเครื่องมือสำหรับทำงานกับข้อมูลหุ้นไทยจาก Google Sheets:
+## เริ่มต้นใช้งาน
 
-- ดาวน์โหลด snapshot XLSX จาก Reference Sheet ที่กำหนดไว้
-- ตรวจสอบโครงสร้างและข้อมูลพื้นฐานของ snapshot
-- จัดกลุ่มรายงาน UPDATE และคัดหุ้น Candidate จาก signals ที่มีในชีต
-- แสดงรายงานใน Terminal พร้อมลิงก์ Finnomena
-- เก็บ snapshot ที่ดาวน์โหลดไว้ใน `downloads/` เพื่อให้ตรวจสอบข้อมูลชุดที่ใช้ได้
+1. ติดตั้ง Python 3.9+ และ dependencies:
 
-> **สถานะ: อยู่ระหว่างพัฒนา — ห้ามใช้วิเคราะห์หรือตัดสินใจซื้อขายหุ้นจริง**
->
-> ระบบยังไม่คำนวณ MPTM จาก OHLCV หรือสร้างรายงาน Excel; Settrade market data เป็นตัวเลือก read-only และไม่มีการส่งคำสั่งซื้อขาย
+   ```bash
+   python3 -m pip install -r requirements.txt
+   ```
 
-## 🔔 การเริ่มต้นใช้งาน
+2. คัดลอก `.env.example` เป็น `.env` แล้วกำหนด:
+
+   ```dotenv
+   SET_DATA_URL=https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
+   SET_DATA_SHEET=All-ThaiMutualFunds-MTFS
+   SEC_API_KEY_FUND=<SEC_API_KEY>
+   ```
+
+   เก็บ `.env` ไว้ในเครื่องเท่านั้น ห้ามใส่ API key ใน source code, Git หรือรายงาน
+
+3. เตรียมชีตตาม [คู่มือตั้งค่าข้อมูล](./GOOGLE-SHEETS-SETUP.md)
+
+## คำสั่ง
 
 ```bash
-git clone https://github.com/TimeFrameLab/TFOSvS.git
-cd TFOSvS
-cp .env.example .env
-pip3 install -r requirements.txt
+./update.sh
+./update.sh UPDATE/1AM-DAILY,KF-GOLD
+./candidate.sh
 ```
 
-กำหนด URL ของ Google Sheets และชื่อแท็บใน `.env`:
+ใช้ comma คั่น AKA หลายรายการ เนื่องจาก AKA ของกองทุนอาจมีเครื่องหมายขีดกลางอยู่แล้ว `UPDATE` ประมวลผลทุกกองทุน ส่วน `CANDIDATE` แสดงกองที่ผ่าน W→D และอยู่ในโซน 4H ตามตัวอย่าง Apps Script
 
-```dotenv
-SET_DATA_URL=https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
-SET_DATA_SHEET=All-SET-MTFS
-```
+CLI อ่าน XLSX snapshot ในหน่วยความจำ ไม่เก็บไฟล์ snapshot, ไม่แก้ไขชีต และไม่ใช้ข้อมูลเก่าหากดาวน์โหลดหรือเรียก SEC ไม่สำเร็จ กองทุนที่ไม่มี `PROJECT ID` จะค้นหาใน SEC profiles; หากการจับคู่ชื่อกำกวมหรือกองทุนมีหลาย class ให้ระบุ project ID หรือ class hint ในชีต
 
-ทุกครั้งที่รัน `UPDATE`, `UPDATE/<AKA>-<AKA>-...` หรือ `CANDIDATE` ระบบจะร้องขอ XLSX ใหม่จาก Google Sheets โดยส่งคำสั่งป้องกันการใช้ HTTP cache ก่อนตรวจและบันทึก snapshot ที่ `downloads/All-SET-MTFS.xlsx`; หากดาวน์โหลดไม่สำเร็จจะไม่ใช้ snapshot เก่าแทน URL ต้องอ่านได้โดยไม่ลงชื่อเข้าใช้ หาก workbook มีข้อมูลส่วนตัว ให้สร้างสำเนาที่ไม่มีข้อมูลดังกล่าวก่อนเปิดสิทธิ์อ่าน
+## Output Contract / ข้อกำหนดบังคับเรื่องการแสดงผล
 
-### Liquidity จาก Settrade (ตัวเลือกเสริม)
+- ใช้เฉพาะรูปแบบคำสั่งที่กำหนดไว้ในหัวข้อ [คำสั่ง](#คำสั่ง): `./update.sh`, `./update.sh UPDATE/<AKA>,<AKA>,...` หรือ `./candidate.sh` ห้ามเปลี่ยนรูปแบบหรืออ้างว่าได้รันคำสั่งอื่น
+- รายงานต้องเริ่มด้วยบล็อกสรุปของ AKA `B-INNOTECH` ตามรูปแบบนี้ โดยค่าทุกช่องต้องมาจาก snapshot ล่าสุด:
 
-เพื่อแสดง market data ให้เพิ่ม App ID และ App Secret ที่ได้รับอนุญาตลงใน `.env` ในเครื่อง:
+  ```text
+  AKA         : B-INNOTECH 🔔
+  LAST_CANDLE : <ค่าจาก LAST_CANDLE>
+  UPDATED     : <ค่าจาก UPDATED>
+  GROUP       : <ค่าจาก GROUP>
+  ```
 
-```dotenv
-SETTRADE_APP_ID=<APP_ID>
-SETTRADE_APP_SECRET=<APP_SECRET>
-SETTRADE_BROKER_ID=SANDBOX
-SETTRADE_APP_CODE=SANDBOX
-```
+- หากไม่พบ `B-INNOTECH` หรือไม่มีคอลัมน์/ค่า `LAST_CANDLE`, `UPDATED` หรือ `GROUP` ให้รายงานข้อผิดพลาดและหยุด ห้ามคาดเดาค่า เติมค่าแทน หรือแสดงรายงานเสมือนสำเร็จ
+- ต้องคงลำดับกลุ่มและลำดับหัวตารางตามที่กำหนด ห้ามสลับ ละ หรือตั้งชื่อใหม่เอง:
+  - CANDIDATE: `🟢 พร้อมครบ W→D→4H — รอ ENTRY_TRIGGER(1H)` ก่อน `🟡 W→D ผ่านแล้ว แต่ 4H ยังไม่ยืนยันโซน`
+  - UPDATE: `AKA | NAV | NAV DATE | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | W | D | 4H | 1H | FINNOMENA`
+  - ตาราง CANDIDATE: `AKA | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | NAV | FINNOMENA`
+- ลิงก์กองทุนต้องใช้ `https://www.finnomena.com/fund/<AKA>/graph`
+- ห้ามสรุปว่าดาวน์โหลด ตรวจสอบ หรือประมวลผลสำเร็จ หากไม่มีผลลัพธ์ยืนยันจริง; เมื่อเกิดข้อผิดพลาดให้รายงานตามจริง
+- ใช้ข้อมูลจาก snapshot ที่เพิ่งดาวน์โหลดในรอบคำสั่งนั้นเท่านั้น หากดาวน์โหลดไม่สำเร็จให้หยุดและแจ้งข้อผิดพลาด ห้ามใช้ cache หรือ snapshot เก่าแทน
 
-รายงานใช้ read-only feeds เท่านั้น: มูลค่าซื้อขายสะสมวันนี้ (`InfoV3.total_value`), ราคา bid/ask ระดับแรก, spread และผลรวมปริมาณ order book bid/ask 10 ระดับ (`BidOfferV3`). แสดงตัวเลขดิบ ไม่จัดระดับสภาพคล่อง; ข้อมูลที่ขาดจะแสดง `N/A` พร้อมแจ้งข้อผิดพลาดหรือ timeout และจะไม่ใช้ cache แทน ไม่มีการใช้ PIN/เลขบัญชีหรือเรียก API บัญชี/คำสั่งซื้อขาย เก็บ credentials ไว้ใน `.env` และห้ามแชร์หรือ commit ค่าเหล่านี้
+## วิธีคำนวณและข้อจำกัด
 
-Settrade แจ้งว่า Sandbox จำกัดการเข้าถึงจาก IP ในประเทศไทยตั้งแต่ 16 กันยายน 2026; การเชื่อมต่อจากนอกประเทศไทยอาจใช้งานไม่ได้ รายงานยังคงทำงานและระบุ Liquidity ที่ไม่พร้อมใช้งานเมื่อไม่มี credentials หรือ feed
+- ใช้ NAV ย้อนหลังประมาณ 5 ปี; W ใช้ bucket ประมาณ 30 วัน, D ใช้ bucket 7 วัน, 4H และ 1H ใช้ NAV รายวันแต่ใช้ indicator periods ต่างกันตามตัวอย่าง
+- เนื่องจากกองทุนไม่มีข้อมูล OHLCV รายวันใน endpoint นี้ โปรแกรมใช้ NAV เป็น close/high/low และใช้การเปลี่ยนแปลงของจำนวนหน่วย (`net_asset / NAV`) เป็น proxy สำหรับ `SIGNAL_VOLUME` ไม่ใช่ปริมาณซื้อขายจริง
+- ไม่ใช้ benchmark สำหรับ Relative Strength โดยปริยาย เพราะ SET Index ไม่เหมาะกับกองทุนทุกประเภท (เช่น ตราสารหนี้และกองทุนต่างประเทศ)
+- `CANDIDATE`, BUY/WAIT/EXIT เป็นผลจาก heuristic ของตัวอย่าง ไม่ใช่คำแนะนำการลงทุนหรือคำสั่งซื้อขาย; ตรวจสอบ share class, ค่าธรรมเนียม และข้อมูล NAV กับผู้ให้บริการก่อนตัดสินใจ
+- ลิงก์กองทุนใช้ `https://www.finnomena.com/fund/<AKA>/graph`
 
-## 🧭 คำสั่งหลัก
-
-| คำสั่ง | วิธีใช้ | ผลลัพธ์ |
-|---|---|---|
-| `START @README.md` | พิมพ์ในแชต | อ่าน README และทบทวน guideline ก่อนรอคำสั่ง |
-| `UPDATE` | `./update.sh` | ดาวน์โหลด snapshot ตรวจข้อมูล และแสดงรายงานหุ้น |
-| `UPDATE/<AKA>-<AKA>-...` | `./update.sh UPDATE/PTT-AOT-CPALL` | แสดงรายงานเฉพาะหุ้นที่ระบุ |
-| `CANDIDATE` | `./candidate.sh` | คัดหุ้นตามเกณฑ์ Candidate 7 ข้อ |
-| `REVIEW` | พิมพ์ในแชต | ทบทวน guideline อีกครั้ง |
-
-## 📌 ข้อมูลสำคัญ
-
-หลังได้รับคำสั่ง `START @README.md` ให้ยึดรูปแบบคำสั่งในเอกสารนี้อย่างเคร่งครัด: `UPDATE` ใช้ `./update.sh`, `UPDATE/<AKA>-<AKA>-...` ใช้ `./update.sh UPDATE/<AKA>-<AKA>-...` และ `CANDIDATE` ใช้ `./candidate.sh` ห้ามเปลี่ยนรูปแบบคำสั่งหรือแทนที่ด้วยวิธีอื่นโดยพลการ รายงานผลต้องรักษาลำดับข้อมูล รูปแบบตาราง ลิงก์ และข้อความเตือนตามที่กำหนดไว้ ห้ามคาดเดาผลลัพธ์หรืออ้างว่าดาวน์โหลด ตรวจสอบ หรือทำงานสำเร็จ หากไม่มีผลการทำงานและข้อมูลยืนยันจริง; เมื่อเกิดข้อผิดพลาดให้รายงานตามที่พบโดยไม่แสดงผลสำเร็จแทน
-
-## 📊 รูปแบบรายงานและเกณฑ์
-
-`UPDATE` ปกติแสดงสรุปหุ้น `ADVANC` จากแถวของ AKA นี้ใน snapshot ก่อนรายงานกลุ่ม โดยใช้รูปแบบ:
-
-```text
-AKA         : ADVANC 🔔
-LAST_CANDLE : <timestamp ของ candle ล่าสุด>
-UPDATED     : <timestamp ที่ข้อมูลอัปเดตล่าสุด>
-GROUP       : <GROUP>
-```
-
-คอลัมน์ `LAST_CANDLE` และ `UPDATED` ต้องมีอยู่และมีค่าในแถว `ADVANC`; หากขาด โปรแกรมจะแจ้งข้อผิดพลาดแทนการแสดงค่าที่คาดเดา `UPDATE` จากนั้นจัดกลุ่มผลเป็น `BUY CONFIRMED`, `EARLY/WATCH`, `PULLBACK ZONE`, `OVEREXTENDED` และ `WAIT/RETEST` ตามข้อมูลใน snapshot โดยเรียง `EARLY/WATCH` ตาม `MACD_HIST_DELTA(W)` และ `PULLBACK ZONE` ตาม Combined Score หุ้นแสดงเป็นลิงก์ `https://www.finnomena.com/stock/<AKA>/advance` และใช้คอลัมน์ `GROUP`
-
-`UPDATE/<AKA>-<AKA>-...` แสดงบล็อก `AKA`, `LAST_CANDLE`, `UPDATED`, `GROUP` สำหรับแต่ละหุ้นตามลำดับที่ขอ แล้วแสดง `🔵 SPECIFIED SET — n รายการ` พร้อมตาราง `AKA | GROUP | RSI(W) | RSI(1H) | ราคา | VOL (x/4) | TREND (x/4) | CMB (x/4) | Liquidity`; แถวเรียงตามคะแนน CMB มากไปน้อย ส่วน AKA ที่ไม่พบหรือ timestamp ว่างจะแจ้งตามจริงและทำให้คำสั่งจบด้วย error status. ค่า Liquidity ยังคงเป็นตัวเลขดิบที่ได้รับจาก Settrade หรือ `⚫ N/A`; ไม่มีการแสดง HIGH/MEDIUM/LOW โดยไม่มีเกณฑ์ที่ยืนยันแล้ว ระบบไม่บันทึก Workbook ที่ดาวน์โหลดกลับไปยัง Google Sheets
-
-`UPDATE` ปกติจะประมวลผล signals และดึง Liquidity ให้เสร็จก่อนแสดงรายงาน จากนั้นแสดงค่าที่ได้ในคอลัมน์ Liquidity ของตารางหมวดเดียวกับหุ้น โดยไม่มีตาราง refresh แยกด้านล่าง ดึงเฉพาะหุ้นที่ปรากฏในตาราง (`BUY CONFIRMED`, `EARLY/WATCH` TOP 10, `PULLBACK ZONE` TOP 10 และ `OVEREXTENDED`); `WAIT/RETEST` แสดงเพียงจำนวนจึงไม่ถูกดึง Liquidity การดึงเปิด feed ทีละหุ้น (ไม่เกิน 2 subscriptions พร้อมกัน), ปิด feed ก่อนหุ้นถัดไป และจำกัดเวลารวมไว้ 120 วินาที พร้อมสรุปจำนวนข้อมูลครบและแจ้งเหตุขัดข้องหลังตาราง หากข้อมูลไม่พร้อมจะแสดง `⚫ N/A` ในตาราง
-
-`CANDIDATE` ผ่านเมื่อครบทุกเงื่อนไข:
-
-1. `TREND(W) = UP`
-2. `TREND(D) = UP`
-3. `RSI(W) > 50`
-4. `MACD_HIST_DELTA(W) > 0`
-5. `RSI(D) < 70`
-6. `EMA9(W) > EMA21(W)`
-7. `SIGNAL_VOLUME` เป็น `BUY` อย่างน้อยหนึ่ง timeframe ใน W/D/4H/1H
-
-รายงานแสดงจำนวนผู้ผ่านทั้งหมดและไม่เกิน 20 แถว เรียงตาม `MACD_HIST_DELTA(W)` จากมากไปน้อย พร้อม `GROUP`, ราคา, `ENTRY_ZONE(4H)` และ `ENTRY_TRIGGER(1H)`.
-
-## 💧 แหล่งข้อมูล Liquidity
-
-หากไม่มี credentials หรือ feed ใช้งานไม่ได้ ตารางแสดง `⚫ N/A` ซึ่งหมายถึงไม่มีข้อมูลยืนยัน ไม่ใช่ระดับสภาพคล่องต่ำ เมื่อตั้งค่า Settrade จะรายงานตัวเลขดิบจากแหล่งดังกล่าว แหล่งข้อมูลอื่นที่นำมาใช้ได้มี:
-
-1. **ข้อมูลจาก SET ผ่านบริการข้อมูลที่ได้รับอนุญาต** — ตัวเลือกแนะนำสำหรับความน่าเชื่อถือและสิทธิ์การใช้งาน ควรตรวจสอบว่าบริการที่เลือกมีข้อมูลมูลค่าซื้อขายย้อนหลังและ/หรือราคาเสนอซื้อขายกับปริมาณคงเหลือ รวมทั้งเงื่อนไขการนำข้อมูลมาใช้
-2. **ผู้ให้บริการข้อมูลตลาดหรือ API ของโบรกเกอร์** — ใช้ได้เมื่อผู้ให้บริการรองรับหลักทรัพย์ SET, มีข้อมูลและความถี่ที่ต้องการ และอนุญาตให้ใช้ข้อมูลในรายงานนี้
-3. **คอลัมน์ใน Reference Sheet** — เหมาะกับ workflow ปัจจุบัน หากเพิ่มข้อมูลจากแหล่งที่ระบุชัดเจน เช่น มูลค่าซื้อขายเฉลี่ยย้อนหลังและเวลาอ้างอิง แล้วส่งต่อมาใน snapshot
-
-ระบบปัจจุบันไม่จัดระดับ HIGH/MEDIUM/LOW และไม่ดึงค่าเก่ามาทดแทนข้อมูลที่ขาด ห้ามอนุมาน Liquidity จาก `SIGNAL_VOLUME` หรือใช้ข้อมูลจากหน้าแสดงกราฟแทนข้อมูลตลาดที่ตรวจสอบแหล่งที่มาได้
-
-## 🛡️ ขอบเขตและข้อควรระวัง
-
-- คอลัมน์หลักที่ใช้ ได้แก่ `AKA`, `GROUP`, `PRICE`, `ACTION`, `TREND`, `RSI`, `MACD_HIST_DELTA(W)` และ `RELATIVE_STRENGTH` ของ timeframe ที่กำหนด รวมถึง `EMA9(W)`, `EMA21(W)`, `SIGNAL_VOLUME`, `ENTRY_ZONE(4H)` และ `ENTRY_TRIGGER(1H)` สำหรับรายงาน Candidate
-- ตัวตรวจเช็กรูปแบบและความครบถ้วนของข้อมูลพื้นฐาน ไม่รับรองความสด benchmark, timezone, ปฏิทินตลาด, corporate actions, tick size หรือ board lot
-- ข้อมูลที่แสดงเป็น signals จาก snapshot และ market data read-only ไม่ใช่คำแนะนำซื้อขาย; รายงานไม่แก้ไข workbook ต้นทาง
-- เก็บ `.env` ไว้ในเครื่อง และอย่าเผยแพร่ workbook ที่มีข้อมูลส่วนตัว
-
-คู่มือการตั้งค่าเพิ่มเติมอยู่ที่ [GOOGLE-SHEETS-SETUP.md](./GOOGLE-SHEETS-SETUP.md) และแนวทางการทำงานอยู่ที่ [TimeFrame-OS-guidelines-and-model-vS.md](./TimeFrame-OS-guidelines-and-model-vS.md).
+ดู [แนวทางและแบบจำลอง vMF](./TimeFrame-OS-guidelines-and-model-vMF.md) สำหรับความหมายของสัญญาณและข้อควรระวัง
