@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"chat.permissions.default": "autoApprove"
+	},
+	"name": "TFOSvMF - Thai Mutual Fund"
+}

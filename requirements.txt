@@ -1,5 +1,1 @@
 openpyxl
-settrade-v2==2.2.1
-# Keep binary wheels compatible with Python 3.9 and macOS LibreSSL installs.
-cryptography<45
-urllib3<2

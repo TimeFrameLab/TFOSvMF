@@ -1,102 +1,48 @@
-# ตั้งค่าแหล่งข้อมูลและคำสั่ง TFOSvS (SET)
+# ตั้งค่า Google Sheets สำหรับ TFOSvMF
 
-`UPDATE` และ `CANDIDATE` ทำงานผ่าน shell scripts โดยแต่ละครั้งจะดาวน์โหลด XLSX จาก `SET_DATA_URL` ใน `.env` เก็บไว้ที่ `downloads/All-SET-MTFS.xlsx` ตรวจข้อมูลจาก snapshot ล่าสุด และแสดงผลใน Terminal โดยไม่คำนวณ OHLCV ใหม่
+## การตั้งค่า
 
-## ตั้งค่า
+กำหนดในไฟล์ `.env` ซึ่งไม่ควร commit:
 
-1. ติดตั้ง Python 3 และ dependencies:
+```dotenv
+SET_DATA_URL=https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
+SET_DATA_SHEET=All-ThaiMutualFunds-MTFS
+SEC_API_KEY_FUND=<SEC_API_KEY>
+```
 
-   ```bash
-   pip3 install -r requirements.txt
-   ```
+ชีตต้องอนุญาตให้ดาวน์โหลด XLSX ผ่านลิงก์โดยไม่ลงชื่อเข้าใช้ หากมีข้อมูลพอร์ตหรือข้อมูลส่วนตัว ให้ใช้สำเนาที่ผ่านการลบข้อมูลดังกล่าวก่อนเปิดสิทธิ์
 
-2. สร้าง `.env` จากตัวอย่าง:
+## รูปแบบชีต
 
-   ```bash
-   cp .env.example .env
-   ```
-
-3. กำหนด URL ของ Google Sheets และชื่อแท็บที่มี signals:
-
-   ```dotenv
-   SET_DATA_URL=https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
-   SET_DATA_SHEET=All-SET-MTFS
-   ```
-
-4. ตรวจให้แน่ใจว่า Google Sheets XLSX export อ่านได้โดยไม่ลงชื่อเข้าใช้ แล้วรันคำสั่ง:
-
-   ```bash
-   ./update.sh
-   ./candidate.sh
-   ```
-
-การดาวน์โหลดและตรวจ snapshot ใช้ได้โดยไม่กำหนด Settrade credentials; หากต้องการข้อมูล Liquidity ให้กำหนด App ID และ App Secret ตามหัวข้อด้านล่าง
-
-## การดาวน์โหลดและความเป็นส่วนตัว
-
-ทุกครั้งที่รัน `update.sh` (รวม `UPDATE/<AKA>-<AKA>-...`) หรือ `candidate.sh` โปรแกรมจะร้องขอ XLSX ใหม่จาก Google Sheets โดยส่งคำสั่งป้องกันการใช้ HTTP cache; ไม่ใช้ snapshot เก่าแทนเมื่อการดาวน์โหลดล้มเหลว ไฟล์ที่ดาวน์โหลดสำเร็จถูกเก็บที่ `downloads/All-SET-MTFS.xlsx` ซึ่งถูก ignore โดย Git
-
-การดาวน์โหลดต้องเข้าถึงได้โดยไม่ลงชื่อเข้าใช้ หาก workbook มีข้อมูลส่วนตัวหรือข้อมูลพอร์ต อย่าเปิด workbook นั้นเป็น Anyone-with-the-link ให้สร้างสำเนาสำหรับอ่านที่ไม่มีข้อมูลส่วนตัวและใช้ URL ของสำเนาแทน URL ถูกอ่านจาก `.env` ในเครื่องและไม่ถูกแสดงในรายงาน
-
-## คอลัมน์ที่ต้องมี
-
-ชื่อแท็บค่าเริ่มต้นคือ `All-SET-MTFS` และต้องมี:
-
-| กลุ่ม | คอลัมน์ |
-|---|---|
-| หุ้น/กลุ่ม/ราคา/สถานะ | `AKA`, `GROUP`, `PRICE`, `ACTION` |
-| Trend และ RSI | `TREND(W/D/4H/1H)`, `RSI(W/D/4H/1H)` |
-| MACD และ Relative Strength | `MACD_HIST_DELTA(W)`, `RELATIVE_STRENGTH(W/D/4H/1H)` |
-| คัด Candidate/แสดงรายงาน | `EMA9(W)`, `EMA21(W)`, `SIGNAL_VOLUME(W)`, `SIGNAL_VOLUME(D)`, `SIGNAL_VOLUME(4H)`, `SIGNAL_VOLUME(1H)`, `ENTRY_ZONE(4H)`, `ENTRY_TRIGGER(1H)` |
-
-หุ้นจะเป็น Candidate เมื่อผ่านครบทุกเงื่อนไขต่อไปนี้:
-
-1. `TREND(W) = UP`
-2. `TREND(D) = UP`
-3. `RSI(W) > 50`
-4. `MACD_HIST_DELTA(W) > 0`
-5. `RSI(D) < 70`
-6. `EMA9(W) > EMA21(W)`
-7. `SIGNAL_VOLUME` มีค่า `BUY` อย่างน้อยหนึ่ง timeframe จาก W/D/4H/1H
-
-`AKA` ต้องเป็นข้อความรูปแบบ ticker และไม่ซ้ำ `GROUP`, trend และ relative-strength ต้องไม่ว่าง `PRICE` ต้องมากกว่า 0, RSI ต้องอยู่ระหว่าง 0–100 และ MACD delta ต้องเป็นตัวเลข finite หาก schema หรือข้อมูลไม่ผ่าน โปรแกรมจะแจ้งข้อผิดพลาดและไม่แสดงผลสำเร็จแทน
+- ชื่อแท็บเริ่มต้น: `All-ThaiMutualFunds-MTFS` (เปลี่ยนได้ด้วย `SET_DATA_SHEET`)
+- วางหัวตารางภายใน 10 แถวแรก โดยต้องมีคอลัมน์ `AKA` และ `PROJECT ID`
+- `AKA` คือชื่อย่อกองทุน เช่น `1AM-DAILY`, `ASP-DAPP 3M5`, `ASP-SC(UH)-UI` หรือ `B1/26`; รองรับรูปแบบ `AKA (FUND)` ด้วย
+- `PROJECT ID` คือ SEC project ID; เพิ่ม class hint ได้เป็น `project_id|class_hint`
+- แถวที่ไม่มี AKA จะถูกข้าม
+- หากไม่มี project ID CLI จะค้นชื่อย่อจาก SEC profiles โดยอัตโนมัติ; ชื่อที่ไม่ชัดเจนหรือมีหลาย share class ต้องระบุ project ID และ class hint อย่างชัดเจน
 
 ## คำสั่ง
 
-- `./update.sh` หรือ `./update.sh UPDATE` — ดาวน์โหลด snapshot ล่าสุด ตรวจข้อมูลและแสดงหุ้นทั้งหมดตาม GROUP พร้อมราคา, MACD delta, TREND/RSI, ACTION และลิงก์ Finnomena
-- `./update.sh UPDATE/PTT-AOT-CPALL` — ดาวน์โหลด snapshot ใหม่และแสดงเฉพาะ AKA ที่ระบุ; AKA ที่ไม่มีใน snapshot จะถูกรายงานและทำให้คำสั่งจบด้วย error status
-- `./candidate.sh` หรือ `./candidate.sh CANDIDATE` — ดาวน์โหลด snapshot ใหม่และคัดหุ้นที่ผ่านครบทั้ง 7 เงื่อนไข Candidate
-- `python3 set_update.py` — ทำงานเทียบเท่า `UPDATE` โดยตรง
-
-`UPDATE` ปกติเริ่มด้วยสรุปหุ้น `ADVANC` โดยอ่าน `AKA`, `LAST_CANDLE`, `UPDATED` และ `GROUP` จากแถวเดียวกันใน snapshot; ต้องมีคอลัมน์ timestamp ทั้งคู่และมีค่า หากไม่มีจะแจ้งข้อผิดพลาด จากนั้นรายงานจัดกลุ่มหุ้นเป็น `BUY CONFIRMED`, `EARLY/WATCH`, `PULLBACK ZONE`, `OVEREXTENDED` และ `WAIT/RETEST` ตามสัญญาณใน snapshot โดยเรียง `EARLY/WATCH` ตาม `MACD_HIST_DELTA(W)` และ `PULLBACK ZONE` ตาม Combined Score; แสดง `GROUP` และชื่อตารางเป็นลิงก์ Finnomena.
-
-`UPDATE/<AKA>-<AKA>-...` แสดงบล็อก `AKA`, `LAST_CANDLE`, `UPDATED`, `GROUP` ของแต่ละ AKA ก่อนตาราง `🔵 SPECIFIED SET — n รายการ` ที่มีคอลัมน์ `AKA | GROUP | RSI(W) | RSI(1H) | ราคา | VOL (x/4) | TREND (x/4) | CMB (x/4) | Liquidity`; เรียงแถวตาม CMB score จากมากไปน้อย. AKA ที่ไม่พบหรือไม่มี timestamp จะแจ้งตามจริงและคืน error status; ไม่มีการจัดระดับ Liquidity เป็น HIGH/MEDIUM/LOW. `CANDIDATE` แสดงจำนวนผู้ผ่านทั้งหมดและตารางไม่เกิน 20 หุ้น เรียง `MACD_HIST_DELTA(W)` จากมากไปน้อย พร้อม `GROUP`, ราคา, `ENTRY_ZONE(4H)` และ `ENTRY_TRIGGER(1H)`. Liquidity แสดงตัวเลขดิบจาก Settrade เมื่อได้รับข้อมูลจริง มิฉะนั้นจะแสดง `⚫ N/A` พร้อมข้อความแจ้งเหตุ
-
-คำสั่งเหล่านี้อ่าน snapshot ล่าสุดที่ดาวน์โหลดมาเท่านั้น ไม่ได้บันทึกหรือแก้ไข Workbook ต้นทาง
-
-`UPDATE` ปกติประมวลผล signals และดึง Liquidity ให้เสร็จก่อนเริ่มแสดงรายงาน แล้วรวมค่า Liquidity ไว้ในตารางของแต่ละหมวด ไม่แสดงตาราง refresh แยกด้านล่าง โดยดึงเฉพาะหุ้นที่แสดงใน `BUY CONFIRMED`, `EARLY/WATCH` สูงสุด 10, `PULLBACK ZONE` สูงสุด 10 และ `OVEREXTENDED`; `WAIT/RETEST` แสดงเฉพาะจำนวนและไม่ถูกดึง ระบบขอ Liquidity ทีละหุ้น เปิด feed ไม่เกิน 2 subscriptions พร้อมกันและปิดก่อนหุ้นถัดไป จำกัดเวลารวม 120 วินาที และสรุปจำนวนข้อมูลครบ/ข้อผิดพลาดหลังตาราง การแบ่งทีละหุ้นช่วยหลีกเลี่ยงข้อจำกัดจำนวน subscriptions พร้อมกัน; เมื่อหมดเวลา หุ้นที่เหลือจะแสดง `N/A` พร้อมคำเตือน
-
-รายงานใช้ข้อมูล signals ที่คำนวณไว้ในชีต ไม่มีการจัดอันดับหรือคำนวณ MPTM ใหม่ การเชื่อมต่อ Settrade (ถ้ากำหนด credentials) ใช้เฉพาะ read-only market data และไม่ส่งคำสั่งซื้อขาย
-
-## แหล่งข้อมูล Liquidity
-
-### Settrade Open API (ตัวเลือกเสริม)
-
-หากมีสิทธิ์ใช้งาน Open API ให้ใส่ App ID และ App Secret ใน `.env` เฉพาะเครื่องของตน:
-
-```dotenv
-SETTRADE_APP_ID=<APP_ID>
-SETTRADE_APP_SECRET=<APP_SECRET>
-SETTRADE_BROKER_ID=SANDBOX
-SETTRADE_APP_CODE=SANDBOX
+```bash
+./update.sh
+./update.sh UPDATE/1AM-DAILY,KF-GOLD
+./update.sh "UPDATE/ASP-DAPP 3M5"
+./candidate.sh
 ```
 
-คำสั่งจะสมัครรับเฉพาะ read-only market feeds: มูลค่าซื้อขายสะสมของวันจาก `InfoV3.total_value` และ order book bid/ask 10 ระดับจาก `BidOfferV3` ผ่าน SDK `settrade-v2` จากนั้นแสดงมูลค่าซื้อขายวันนี้, ราคา bid/ask ระดับแรก, spread และผลรวมปริมาณ bid/ask 10 ระดับ ไม่มีการจัดระดับ HIGH/MEDIUM/LOW และไม่อนุมานค่าที่ไม่มีจาก snapshot หรือ cache เก่า หากข้อมูลไม่ครบจะแสดง N/A สำหรับส่วนนั้น พร้อมเตือนเมื่อ feed มีข้อผิดพลาดหรือหมดเวลารอ
+ใช้ comma คั่นหลาย AKA เพราะขีดกลางเป็นส่วนหนึ่งของชื่อกองทุนได้; ถ้า AKA มีช่องว่างให้ครอบ argument ด้วย quotes ตามตัวอย่าง ทุกคำสั่งดาวน์โหลด XLSX snapshot ล่าสุดโดยไม่ใช้ HTTP cache และบันทึกสำเนาไว้ที่ `downloads/All-ThaiMutualFunds-MTFS.xlsx`; ถ้าดาวน์โหลด XLSX ไม่สำเร็จจะแสดง error และไม่ใช้ไฟล์เก่าทดแทน หาก SEC API ใช้งานไม่ได้ ระบบจะรายงานข้อผิดพลาดของกองทุนนั้นและไม่ใช้ NAV เก่าทดแทน
 
-เก็บ App ID/Secret ใน `.env` ที่ไม่ commit; ห้ามใส่ PIN หรือเลขบัญชี และระบบไม่เรียก account, portfolio, order หรือ trade endpoints. Settrade ระบุว่า Sandbox จำกัดการเข้าถึงจาก IP ในประเทศไทยตั้งแต่ 16 กันยายน 2026; การทดสอบจากพื้นที่อื่นอาจเชื่อมต่อไม่ได้
+`UPDATE` แสดงตารางสรุป `AKA`, `PROJECT ID`, `RSI(W)`, `RSI(D)`, `MACD Δ(W)`, NAV, BIAS/SETUP/ENTRY/ACTION และ `PTR (latest Factsheet)`; `UPDATE/<AKA>,...` เพิ่ม metadata รายกอง ได้แก่ AKA, วันที่ NAV ล่าสุด (`LAST_CANDLE`), เวลาสร้างรายงานตามเวลาไทย (`UPDATED`) และ PROJECT ID ก่อนตาราง `SPECIFIED FUND` ซึ่งแสดง RSI(W) และ RSI(1H) ส่วน `CANDIDATE` คงสองกลุ่มเดิมและเรียง MACD Δ(W) จากมากไปน้อยในแต่ละกลุ่ม ทั้งสามรูปแบบฝังลิงก์ Finnomena ใน AKA และไม่มีคอลัมน์ `FINNOMENA` แยก เป็นผลจาก heuristic ไม่ใช่คำแนะนำการลงทุน
 
-## ขอบเขตและข้อจำกัด
+## SEC Open API
 
-- ความสด ความถูกต้อง benchmark, timezone, ปฏิทินตลาด SET และการปรับ corporate actions ขึ้นกับวิธีสร้างข้อมูลใน workbook; ตัวตรวจไม่ได้รับรองเรื่องเหล่านี้
-- การแสดงหุ้นเป็นการรายงานข้อมูลจาก snapshot ไม่ใช่คำแนะนำลงทุน
-- `examples/SET-Summary.gs` เป็นตัวอย่างเสริมสำหรับสร้างแท็บสรุปใน Google Sheets; ไม่เกี่ยวข้องกับคำสั่ง `UPDATE`/`CANDIDATE`
+- ใช้ `SEC_API_KEY_FUND` จาก `.env` ใน header `Ocp-Apim-Subscription-Key`
+- ดึง NAV ย้อนหลังประมาณ 5 ปี พร้อมรองรับ pagination; จำกัดจำนวนหน้าเพื่อป้องกันการวนไม่สิ้นสุด
+- ดึง fund profiles เมื่อแถวไม่มี `PROJECT ID` เพื่อจับคู่ชื่อย่อ โดยจะแจ้งข้อผิดพลาดหากชื่อกำกวมหรือไม่พบ
+- ดึง Portfolio Turnover Ratio จาก `GET /v2/fund/factsheet/statistics` โดยใช้ `proj_id`, `fund_class_name` ที่เลือกจาก NAV และ `latest=true`; ใน CANDIDATE จะเรียกหลังคัดกลุ่มแล้วเท่านั้น
+- หาก API ตอบ HTTP error, JSON ผิดรูปแบบ หรือไม่มีข้อมูล จะรายงาน error ตามจริง
+- SEC API key ไม่ถูกแสดงใน output และไม่ถูกเก็บใน Git
+
+PTR แสดงในคอลัมน์เดียวพร้อมวันที่เริ่มมีผลของ Factsheet (เมื่อ SEC ส่งค่า); หากไม่มี PTR จะแสดง `N/A` ส่วนความผิดพลาดในการเรียก endpoint จะแสดงเป็น error และทำให้คำสั่งคืนสถานะไม่สำเร็จ PTR เป็นสถิติที่ บลจ. รายงานใน Factsheet ไม่ใช่มูลค่าซื้อขายรายวันหรือ bid/ask liquidity
+
+SEC ใช้สำหรับข้อมูล NAV/history, fund profiles และ Factsheet statistics แบบ read-only; ไม่ได้ใช้หรือสมมติข้อมูล bid/ask หรือ order book แบบตลาดหุ้น CLI ไม่แก้ไข Google Sheet และไม่ส่งคำสั่งซื้อขาย
