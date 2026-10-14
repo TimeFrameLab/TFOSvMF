@@ -14,11 +14,7 @@
 
 ## เริ่มต้นใช้งาน
 
-1. ติดตั้ง Python 3.9+ และ dependencies:
-
-   ```bash
-   python3 -m pip install -r requirements.txt
-   ```
+1. ใช้ macOS หรือ Linux ที่มี Bash, Ruby 2.6+, Ruby standard library, `curl` และ `unzip`; ไม่ต้องติดตั้ง Python, Ruby gems หรือแพ็กเกจเพิ่ม
 
 2. คัดลอก `.env.example` เป็น `.env` แล้วกำหนด:
 
@@ -28,7 +24,7 @@
    SEC_API_KEY_FUND=<SEC_API_KEY>
    ```
 
-   เก็บ `.env` ไว้ในเครื่องเท่านั้น ห้ามใส่ API key ใน source code, Git หรือรายงาน
+   `SET_DATA_URL` ต้องเป็น URL ชีต Google รูปแบบ `/spreadsheets/d/<SHEET_ID>/...`; CLI สร้าง XLSX export URL จาก Sheet ID เอง ส่วน `SET_DATA_SHEET` ต้องตรงกับชื่อแท็บในไฟล์ที่ export ได้ เก็บ `.env` ไว้ในเครื่องเท่านั้น ห้ามใส่ API key ใน source code, Git หรือรายงาน
 
 3. เตรียมชีตตาม [คู่มือตั้งค่าข้อมูล](./GOOGLE-SHEETS-SETUP.md)
 
@@ -38,14 +34,14 @@
 
 ```bash
 ./update.sh
-./update.sh UPDATE/1AM-DAILY,KF-GOLD
+./update.sh UPDATE/1AM-DAILY-KF-GOLD
 ./update.sh "UPDATE/ASP-DAPP 3M5"
 ./candidate.sh
 ```
 
-ใช้ comma คั่น AKA หลายรายการ เนื่องจาก AKA ของกองทุนอาจมีเครื่องหมายขีดกลางอยู่แล้ว; AKA ที่มีช่องว่างภายในให้ครอบคำสั่งด้วย quotes ตามตัวอย่าง `UPDATE` ประมวลผลทุกกองทุน ส่วน `CANDIDATE` แสดงกองทุนตามเกณฑ์ heuristic W→D และโซน 4H ในแบบจำลอง
+ใช้ขีดกลางคั่น AKA หลายรายการ โดยตัวประมวลผลจะจับคู่กับ AKA ในชีตจากชื่อที่ยาวที่สุดก่อน จึงรองรับ AKA ที่มีขีดกลางเป็นส่วนหนึ่งของชื่อได้ หากการจับคู่มีความกำกวมให้รันแยกกองทุน; AKA ที่มีช่องว่างภายในต้องครอบ argument ด้วย quotes ตามตัวอย่าง `UPDATE` ประมวลผลทุกกองทุน ส่วน `CANDIDATE` แสดงกองทุนตามเกณฑ์ heuristic W→D และโซน 4H ในแบบจำลอง
 
-ทุกครั้งที่รันคำสั่ง ระบบจะร้องขอ XLSX ใหม่จาก Google Sheets โดยป้องกัน HTTP cache และบันทึก snapshot ล่าสุดที่ `downloads/All-ThaiMutualFunds-MTFS.xlsx` ก่อนตรวจสอบและประมวลผล หากดาวน์โหลดไม่สำเร็จจะไม่ใช้ snapshot เก่าแทน ระบบไม่เขียนกลับชีตและไม่ใช้ผลลัพธ์จาก SEC ที่บันทึกค้างไว้ กองทุนที่ไม่มี `PROJECT ID` จะค้นหาใน SEC profiles; หากการจับคู่ชื่อกำกวมหรือกองทุนมีหลาย class ให้ระบุ project ID หรือ class hint ในชีต หลังคัดกองทุนตามคำสั่ง/เกณฑ์ Candidate แล้วจึงเรียก SEC Fund Factsheet statistics เฉพาะกองทุนที่จะอยู่ในรายงาน เพื่ออ่าน PTR ล่าสุด
+ทุกครั้งที่รันคำสั่ง `fund_update.rb` อ่านค่าจาก environment ก่อน แล้วอ่านค่าที่ขาดจาก `.env`; ดาวน์โหลด XLSX export ใหม่ด้วย `curl`, บันทึกเป็น `downloads/All-ThaiMutualFunds-MTFS.xlsx` และอ่าน workbook ด้วย Ruby standard library กับ `unzip` หากดาวน์โหลดไม่สำเร็จจะไม่ใช้ snapshot เก่าแทน ระบบไม่เขียนกลับชีตและไม่ใช้ผลลัพธ์จาก SEC ที่บันทึกค้างไว้ กองทุนที่ไม่มี `PROJECT ID` จะค้นหาใน SEC profiles; หากการจับคู่ชื่อกำกวมหรือกองทุนมีหลาย class ให้ระบุ project ID หรือ class hint ในชีต หลังคัดกองทุนตามคำสั่ง/เกณฑ์ Candidate แล้วจึงเรียก SEC Fund Factsheet statistics เฉพาะกองทุนที่จะอยู่ในรายงาน เพื่ออ่าน PTR ล่าสุด
 
 ## Output Contract / มาตรฐานการนำเสนอร่วมกัน
 
@@ -59,11 +55,11 @@
 | คำเตือนตามจริง | แสดงเฉพาะคำเตือนหรือข้อผิดพลาดที่เกิดขึ้นจริงและเกี่ยวข้องกับรอบประมวลผลนั้น ห้ามแต่งคำเตือน ละคำเตือนที่เกิดขึ้น หรืออ้างว่าทำงานสำเร็จเมื่อยังไม่มีผลยืนยัน |
 | รูปแบบเฉพาะคำสั่ง | แต่ละคำสั่งคงหัวข้อ ลำดับกลุ่ม metadata และ schema ตารางของตนเองตามข้อกำหนดด้านล่าง ไม่บังคับให้ใช้หัวข้อหรือตารางเหมือนกันทุกคำสั่ง |
 
-- ใช้เฉพาะรูปแบบคำสั่งที่กำหนดไว้ในหัวข้อ [คำสั่ง](#คำสั่ง): `./update.sh`, `./update.sh UPDATE/<AKA>,<AKA>,...` หรือ `./candidate.sh` ห้ามเปลี่ยนรูปแบบหรืออ้างว่าได้รันคำสั่งอื่น
+- ใช้เฉพาะรูปแบบคำสั่งที่กำหนดไว้ในหัวข้อ [คำสั่ง](#คำสั่ง): `./update.sh`, `./update.sh UPDATE/<AKA>-<AKA>-...` หรือ `./candidate.sh` ห้ามเปลี่ยนรูปแบบหรืออ้างว่าได้รันคำสั่งอื่น
 - ชีตอินพุตต้องมีคอลัมน์ `AKA` และ `PROJECT ID`; โปรแกรมดึง NAV จาก SEC และคำนวณตัวชี้วัด/สัญญาณเอง ไม่ได้อ่าน PRICE, RSI, TREND, MACD หรือ ACTION ที่คำนวณไว้ในชีต
 - คงลำดับกลุ่มและลำดับหัวตารางของแต่ละคำสั่งตามที่กำหนด ห้ามสลับ ละ หรือตั้งชื่อใหม่เอง:
   - CANDIDATE: `🟢 พร้อมครบ W→D→4H — รอ ENTRY_TRIGGER(1H)` ก่อน `🟡 W→D ผ่านแล้ว แต่ 4H ยังไม่ยืนยันโซน`
-  - `UPDATE/<AKA>,<AKA>,...`: แสดง metadata `AKA`, `LAST_CANDLE`, `UPDATED`, `PROJECT ID` แยกรายกอง แล้วแสดงหัวข้อ `🔵 SPECIFIED FUND — <จำนวน> รายการ`
+  - `UPDATE/<AKA>-<AKA>-...`: แสดง metadata `AKA`, `LAST_CANDLE`, `UPDATED`, `PROJECT ID` แยกรายกอง แล้วแสดงหัวข้อ `🔵 SPECIFIED FUND — <จำนวน> รายการ`
   - ตาราง UPDATE รวม: `AKA | PROJECT ID | RSI(W) | RSI(D) | MACD Δ(W) | NAV | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | PTR (latest Factsheet)`
   - ตาราง SPECIFIED FUND: `AKA | PROJECT ID | RSI(W) | RSI(1H) | MACD Δ(W) | NAV | BIAS(W) | SETUP(D) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | ACTION | PTR (latest Factsheet)`
   - ตาราง CANDIDATE: `# | AKA | PROJECT ID | NAV | MACD Δ(W) | ENTRY_ZONE(4H) | ENTRY_TRIGGER(1H) | PTR (latest Factsheet)`; เรียง MACD Δ(W) มากไปน้อยภายในแต่ละกลุ่ม โดยไม่เปลี่ยนเกณฑ์หรือกลุ่มเดิม
@@ -71,7 +67,7 @@
 - ลิงก์กองทุนต้องใช้ `https://www.finnomena.com/fund/<AKA>/graph`
 - แสดง AKA เป็น Markdown link ไปยัง Finnomena ภายในคอลัมน์ AKA; ห้ามเพิ่มคอลัมน์ `FINNOMENA` แยกในรายงาน UPDATE, UPDATE/<AKA> หรือ CANDIDATE
 - `PTR (latest Factsheet)` คือค่า `portfolio_turnover_ratio` จาก SEC Factsheet statistics พร้อมวันที่เริ่มมีผลของ Factsheet เมื่อมี; ไม่ใช่ turnover รายวันหรือ bid/ask liquidity หากไม่มีค่าจะแสดง `N/A` และหาก SEC เรียกไม่สำเร็จจะแจ้งข้อผิดพลาดและคืนสถานะไม่สำเร็จ
-- `CANDIDATE` ต้องคัดเลือกกลุ่มตามเกณฑ์ก่อน แล้วจึงเรียก PTR เฉพาะกองทุนที่แสดงในกลุ่ม Candidate; `UPDATE` เรียก PTR สำหรับกองทุนที่ผ่าน NAV processing ทั้งหมด หรือเฉพาะ AKA ที่ระบุใน `UPDATE/<AKA>,...`
+- `CANDIDATE` ต้องคัดเลือกกลุ่มตามเกณฑ์ก่อน แล้วจึงเรียก PTR เฉพาะกองทุนที่แสดงในกลุ่ม Candidate; `UPDATE` เรียก PTR สำหรับกองทุนที่ผ่าน NAV processing ทั้งหมด หรือเฉพาะ AKA ที่ระบุใน `UPDATE/<AKA>-<AKA>-...`
 - ห้ามสรุปว่าดาวน์โหลด ตรวจสอบ หรือประมวลผลสำเร็จ หากไม่มีผลลัพธ์ยืนยันจริง; เมื่อเกิดข้อผิดพลาดให้รายงานตามจริง
 - ใช้ข้อมูลจาก snapshot ที่เพิ่งดาวน์โหลดในรอบคำสั่งนั้นเท่านั้น หากดาวน์โหลดไม่สำเร็จให้หยุดและแจ้งข้อผิดพลาด ห้ามใช้ cache หรือ snapshot เก่าแทน แม้ไฟล์เก่าจะยังอยู่ใน `downloads/`
 
@@ -79,9 +75,9 @@
 
 ก่อนส่งหรือบันทึกผลลัพธ์ ให้ทำตามเช็กลิสต์นี้ให้ครบทุกรายการ:
 
-- [ ] ใช้คำสั่งที่ถูกต้อง: `./update.sh`, `./update.sh UPDATE/<AKA>,<AKA>,...` หรือ `./candidate.sh`
+- [ ] ใช้คำสั่งที่ถูกต้อง: `./update.sh`, `./update.sh UPDATE/<AKA>-<AKA>-...` หรือ `./candidate.sh`
 - [ ] รายงานเป็น Markdown ที่ render ได้จริง ไม่ครอบด้วย code fence
-- [ ] สำหรับ `UPDATE/<AKA>,<AKA>,...` ให้แสดง metadata ก่อนตาราง: `AKA`, `LAST_CANDLE`, `UPDATED`, `PROJECT ID`
+- [ ] สำหรับ `UPDATE/<AKA>-<AKA>-...` ให้แสดง metadata ก่อนตาราง: `AKA`, `LAST_CANDLE`, `UPDATED`, `PROJECT ID`
 - [ ] หลัง metadata ให้พิมพ์ `🔵 SPECIFIED FUND — <จำนวน> รายการ`
 - [ ] สำหรับ `UPDATE` ให้พิมพ์ `สรุปข้อมูลกองทุน — <จำนวน> กองทุน`
 - [ ] สำหรับ `CANDIDATE` ให้จัด 2 กลุ่มตามลำดับ: `🟢 ...` แล้วตามด้วย `🟡 ...`
@@ -100,7 +96,7 @@
 
 ตัวอย่างด้านล่างแสดงรูปแบบรายงานที่ CLI ใช้จริง โดยค่าที่อยู่ในวงเล็บเหลี่ยมเป็น placeholder ไม่ใช่ผลการดึงข้อมูลจริง ใช้ลิงก์ Finnomena ในคอลัมน์ AKA และไม่เพิ่มคอลัมน์ `FINNOMENA` แยก; ไม่ใช้คอลัมน์ `VOL`, `TREND`, `CMB` แบบรายงานหุ้น เพราะ vMF ไม่ได้คำนวณคะแนนเหล่านั้น
 
-### `UPDATE/<AKA>,<AKA>,...` — กองทุนที่ระบุ
+### `UPDATE/<AKA>-<AKA>-...` — กองทุนที่ระบุ
 
 แสดง metadata ของแต่ละกองทุนก่อนตารางสรุป:
 

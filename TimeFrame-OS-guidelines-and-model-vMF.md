@@ -4,12 +4,16 @@
 
 TFOSvMF อ่านรายชื่อกองทุนจาก Google Sheets และ NAV ย้อนหลังจาก SEC Open API เพื่อสร้างรายงานสรุปใน Terminal เท่านั้น ไม่มีการส่งคำสั่งซื้อขายหรือเขียนข้อมูลกลับไปยังชีต
 
+คำสั่งทำงานผ่าน Bash และ `fund_update.rb` ใช้ Ruby 2.6+ standard library, `curl` และ `unzip`; ไม่มี Python runtime, Python source หรือ Ruby gem dependency
+
+ค่าตั้งต้นอ่านจาก environment ก่อน แล้วอ่าน `.env` สำหรับค่าที่ยังไม่มี โดย `SET_DATA_URL` เป็น Google Sheets URL ที่ใช้ดึง Sheet ID เพื่อสร้าง XLSX export URL; `SET_DATA_SHEET` ระบุแท็บที่อ่าน ทุกคำสั่งต้องดาวน์โหลด snapshot ใหม่ไปยัง `downloads/All-ThaiMutualFunds-MTFS.xlsx` ก่อนประมวลผล และห้ามใช้ snapshot เก่าเมื่อดาวน์โหลดรอบปัจจุบันไม่สำเร็จ
+
 ## Output Contract / ข้อกำหนดบังคับเรื่องการแสดงผล
 
-- ใช้เฉพาะคำสั่งตามรูปแบบที่ระบุใน README: `./update.sh`, `./update.sh UPDATE/<AKA>,<AKA>,...` และ `./candidate.sh`
+- ใช้เฉพาะคำสั่งตามรูปแบบที่ระบุใน README: `./update.sh`, `./update.sh UPDATE/<AKA>-<AKA>-...` และ `./candidate.sh`
 - ชีตอินพุตใช้ `AKA` และ `PROJECT ID`; โปรแกรมดึง NAV/history และ fund profiles จาก SEC แล้วคำนวณค่าที่ใช้ในรายงาน ไม่ต้องมีคอลัมน์ `LAST_CANDLE` หรือ `UPDATED` ในชีต เพราะ metadata นี้คำนวณจาก NAV ล่าสุดและเวลาสร้างรายงาน
 - คงกลุ่มและหัวตารางตาม contract ใน README: CANDIDATE แสดงกลุ่ม `🟢 พร้อมครบ W→D→4H — รอ ENTRY_TRIGGER(1H)` ก่อน `🟡 W→D ผ่านแล้ว แต่ 4H ยังไม่ยืนยันโซน`; ห้ามสลับกลุ่มหรือเปลี่ยน ละ หรือตัดหัวตารางของ UPDATE/CANDIDATE
-- `UPDATE/<AKA>,...` แสดง metadata รายกองและตาราง `SPECIFIED FUND`; `LAST_CANDLE` เป็นวันที่ NAV ล่าสุดโดยไม่มีเวลาแท่ง intraday เพราะข้อมูล SEC เป็น NAV รายวัน ส่วน `UPDATED` ใช้เวลา Asia/Bangkok
+- `UPDATE/<AKA>-...` แสดง metadata รายกองและตาราง `SPECIFIED FUND`; `LAST_CANDLE` เป็นวันที่ NAV ล่าสุดโดยไม่มีเวลาแท่ง intraday เพราะข้อมูล SEC เป็น NAV รายวัน ส่วน `UPDATED` ใช้เวลา Asia/Bangkok
 - ตาราง UPDATE รวมแสดง RSI(W), RSI(D), MACD Δ(W), NAV และสรุป BIAS/SETUP/ENTRY/ACTION พร้อม PROJECT ID และ PTR; `SPECIFIED FUND` ใช้ RSI(W), RSI(1H) ในหัวตารางแทน RSI(D); CANDIDATE คงเกณฑ์/สองกลุ่มเดิม และเรียง MACD Δ(W) จากมากไปน้อยภายในกลุ่ม
 - แสดง `PTR (latest Factsheet)` หนึ่งคอลัมน์ในทั้ง UPDATE และ CANDIDATE; คัดกองทุน Candidate ก่อนเรียก PTR และเรียกเฉพาะรายการที่แสดง ส่วน UPDATE เรียกเฉพาะกองทุนในรายงาน/AKA ที่ระบุ
 - แสดง AKA เป็น Markdown link ไปยัง `https://www.finnomena.com/fund/<AKA>/graph` ภายในคอลัมน์ AKA; ห้ามแสดงคอลัมน์ `FINNOMENA` แยกในรายงาน UPDATE, UPDATE/<AKA> หรือ CANDIDATE

@@ -8,4 +8,4 @@ if [[ $# -gt 1 || $# -eq 1 && "$1" != "CANDIDATE" ]]; then
   exit 2
 fi
 
-exec python3 "$SCRIPT_DIR/fund_update.py" CANDIDATE
+exec ruby --disable-gems "$SCRIPT_DIR/fund_update.rb" CANDIDATE
