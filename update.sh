@@ -10,4 +10,4 @@ if [[ $# -gt 1 ]] || { [[ "$COMMAND" != "UPDATE" ]] && [[ ! "$COMMAND" =~ $UPDAT
   exit 2
 fi
 
-exec ruby --disable-gems "$SCRIPT_DIR/fund_update.rb" "$COMMAND"
+exec bash "$SCRIPT_DIR/fund_update.sh" "$COMMAND"

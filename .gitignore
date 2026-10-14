@@ -7,3 +7,9 @@
 
 # macOS metadata
 .DS_Store
+
+# Local Python runtime and package cache
+/.venv/
+/.uv-cache/
+/.uv-python/
+/.tools/

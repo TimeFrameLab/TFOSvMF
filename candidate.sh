@@ -8,4 +8,4 @@ if [[ $# -gt 1 || $# -eq 1 && "$1" != "CANDIDATE" ]]; then
   exit 2
 fi
 
-exec ruby --disable-gems "$SCRIPT_DIR/fund_update.rb" CANDIDATE
+exec bash "$SCRIPT_DIR/fund_update.sh" CANDIDATE
