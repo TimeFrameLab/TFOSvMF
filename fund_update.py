@@ -291,19 +291,22 @@ class SecClient:
                     return value.upper()
             return ""
 
+        def canonical(value: str) -> str:
+            return re.sub(r"\s+", "", value).upper()
+
         def project_id(profile: dict[str, Any]) -> str:
             return str(profile.get("proj_id") or profile.get("projId") or
                        profile.get("project_id") or "").strip()
 
-        target = fund_code.strip().upper()
-        exact = [item for item in profiles if name(item) == target and project_id(item)]
+        target = canonical(fund_code.strip())
+        exact = [item for item in profiles if canonical(name(item)) == target and project_id(item)]
         if len(exact) == 1:
             return project_id(exact[0])
         if len(exact) > 1:
             raise FundDataError(f"{fund_code}: พบ project ID ซ้ำใน SEC profiles; ระบุ PROJECT ID ในชีต")
         partial = [item for item in profiles
                    if name(item) and project_id(item) and
-                   (name(item).startswith(target) or target.startswith(name(item)))]
+                   (canonical(name(item)).startswith(target) or target.startswith(canonical(name(item))))]
         if len(partial) == 1:
             return project_id(partial[0])
         if partial:
@@ -832,7 +835,6 @@ def print_update(reports: list[dict[str, Any]], specified: bool = False) -> None
         for report in reports:
             if report["nav"].class_warning:
                 print(f"- {report['row'].code}: {report['nav'].class_warning}")
-    print(f"\nUPDATE — {len(reports)} กองทุน | ไม่ได้เขียนข้อมูลกลับไปยังชีต")
 
 
 def candidate_report_groups(reports: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -912,7 +914,7 @@ def main(arguments: list[str]) -> int:
         command, selected = _parse_command(arguments[0] if arguments else "UPDATE")
         config = load_config()
         rows = load_fund_rows(config, selected)
-        print(f"✅ ดาวน์โหลดและตรวจสอบ snapshot: {WORKBOOK_PATH}")
+        print(f"✅ ดาวน์โหลดและตรวจสอบ snapshot: {WORKBOOK_PATH}", file=sys.stderr)
         client = SecClient(config["SEC_API_KEY_FUND"])
         if any(not row.project_id for row in rows):
             print("กำลังค้นหา PROJECT ID ที่ว่างจาก SEC profiles...", file=sys.stderr)
@@ -951,8 +953,6 @@ def main(arguments: list[str]) -> int:
                 file=sys.stderr,
             )
             return 1
-        if command == "CANDIDATE":
-            print(f"\nตรวจแล้ว {len(reports)} กองทุน")
         return 0
     except FundDataError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
