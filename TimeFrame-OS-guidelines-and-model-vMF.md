@@ -46,7 +46,7 @@ Logic ทั้งหมดอยู่ใน [fund_update.sh](./fund_update.sh)
 1. ตรวจว่ามีคอลัมน์สำหรับเกณฑ์ Candidate และ entry labels
 2. ตรวจแต่ละแถวตามเกณฑ์ 7 ข้อ
 3. เรียงผู้ผ่านตาม `MACD_HIST_DELTA(W)` จากมากไปน้อย
-4. แสดงจำนวนผู้ผ่านทั้งหมด แต่แสดงตารางไม่เกิน 20 อันดับ
+4. แสดงจำนวนผู้ผ่านทั้งหมด แต่แสดงตารางไม่เกิน 10 อันดับ
 5. ใช้ `PROJECT ID` เป็นค่า `Tier`
 6. เรียก SEC Factsheet statistics ล่าสุดเฉพาะรายการที่แสดง
 7. แสดง `⚫ N/A` และคำเตือนเมื่อไม่มี PTR ที่ยืนยันได้
@@ -108,11 +108,11 @@ PROJECT ID  : <PROJECT ID>
 ผ่านเกณฑ์ CANDIDATE 7 ข้อ เรียงตาม MACD Delta (W) สูงสุด — รอ 1H Trigger ยืนยัน
 ```
 
-ตารางต้องใช้คอลัมน์ตามลำดับนี้และแสดงไม่เกิน 20 อันดับ:
+ตารางต้องใช้คอลัมน์ตามลำดับนี้และแสดงไม่เกิน 10 อันดับ:
 
 `# | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))`
 
-- `n` คือจำนวนผู้ผ่านเกณฑ์ทั้งหมดก่อนจำกัด 20 อันดับ
+- `n` คือจำนวนผู้ผ่านเกณฑ์ทั้งหมดก่อนจำกัด 10 อันดับ
 - ชื่อรายการเป็นลิงก์ TradingView รูปแบบ `https://www.tradingview.com/symbols/<AKA>/`
 - `Tier = PROJECT ID`
 - `Liquidity(PTR (latest Factsheet))` ใช้ `portfolio_turnover_ratio` ล่าสุดจาก SEC Factsheet

@@ -115,7 +115,7 @@ def candidate_report():
  print('| # | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet)) |')
  print('|---:|---|---|---:|---:|---|---|---|')
  if not candidates:print('| — | — | — | — | — | — | — | — |');return
- for n,row in enumerate(candidates[:20],1):
+ for n,row in enumerate(candidates[:10],1):
   code=display(cell(row,'AKA')).upper();tier=display(cell(row,'PROJECT ID'));price=display(cell(row,'PRICE'));delta=display(cell(row,'MACD_HIST_DELTA(W)'));zone=display(cell(row,'ENTRY_ZONE(4H)'));trigger=display(cell(row,'ENTRY_TRIGGER(1H)'));pid=tier
   print(f'| {n} | [{code}]({fund_url(code)}) | {tier} | {price} | {delta} | {zone} | {trigger} | {ptr(pid) if pid != "⚫ N/A" else "⚫ N/A"} |')
  if ptr_warnings:print('⚠️ PTR (latest Factsheet) ไม่พร้อมใช้งานสำหรับ '+', '.join(ptr_warnings))

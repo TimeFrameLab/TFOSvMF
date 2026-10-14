@@ -43,7 +43,7 @@ URL ต้องอ่านได้โดยไม่ลงชื่อเข�
 | `START @README.md` | พิมพ์ในแชต | อ่าน README และทบทวน guideline ก่อนรอคำสั่ง |
 | `UPDATE` | `./update.sh` | ดาวน์โหลด snapshot ตรวจข้อมูล และแสดงรายงานกองทุน |
 | `UPDATE/<AKA>` | `./update.sh UPDATE/B-INNOTECH` | แสดงรายงานเฉพาะกองทุนที่ระบุ |
-| `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อและแสดงผลสูงสุด 20 อันดับ |
+| `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อและแสดงผลสูงสุด 10 อันดับ |
 | `REVIEW` | พิมพ์ในแชต | ทบทวน guideline อีกครั้ง |
 
 ## 📌 ข้อมูลสำคัญ
@@ -107,7 +107,7 @@ PROJECT ID  : <PROJECT ID>
 | 1 | [<AKA>](https://www.tradingview.com/symbols/<AKA>/) | <Tier> | <ราคา> | <MACD Δ(W)> | <Entry Zone> | <1H Trigger> | <PTR หรือ ⚫ N/A> |
 ```
 
-`n` คือจำนวนรายการทั้งหมดที่ผ่านเกณฑ์ก่อนจำกัดการแสดงผล รายงานจะแสดงไม่เกิน 20 อันดับและเรียง `MACD Δ(W)` จากมากไปน้อย ชื่อรายการเป็นลิงก์ TradingView ค่า `Tier` ใช้ `PROJECT ID` โดยตรง ส่วน `Liquidity(PTR (latest Factsheet))` ใช้ค่า `portfolio_turnover_ratio` ล่าสุดจาก SEC API หรือ `⚫ N/A` เมื่อไม่มีข้อมูลยืนยัน
+`n` คือจำนวนรายการทั้งหมดที่ผ่านเกณฑ์ก่อนจำกัดการแสดงผล รายงานจะแสดงไม่เกิน 10 อันดับและเรียง `MACD Δ(W)` จากมากไปน้อย ชื่อรายการเป็นลิงก์ TradingView ค่า `Tier` ใช้ `PROJECT ID` โดยตรง ส่วน `Liquidity(PTR (latest Factsheet))` ใช้ค่า `portfolio_turnover_ratio` ล่าสุดจาก SEC API หรือ `⚫ N/A` เมื่อไม่มีข้อมูลยืนยัน
 
 ## ✅ ข้อกำหนดบังคับเรื่องการแสดงผล (Output Contract)
 
