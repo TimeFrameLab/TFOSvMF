@@ -190,3 +190,22 @@ PTR ใช้ค่า `portfolio_turnover_ratio` จาก SEC Factsheet ขอ
 - เก็บ `.env` ไว้ในเครื่องเท่านั้น และอย่าเผยแพร่ API key หรือ workbook ที่มีข้อมูลส่วนตัว
 
 คู่มือการตั้งค่าเพิ่มเติมอยู่ที่ [GOOGLE-SHEETS-SETUP.md](./GOOGLE-SHEETS-SETUP.md) และแนวทางการทำงานอยู่ที่ [TimeFrame-OS-guidelines-and-model-vMF.md](./TimeFrame-OS-guidelines-and-model-vMF.md)
+
+## 🛠️ สรุปปัญหาและแนวทางแก้ไขการดาวน์โหลด
+
+เมื่อรัน `UPDATE` ในสภาพแวดล้อมที่จำกัดเครือข่าย ระบบอาจแสดงข้อความ:
+
+```text
+ERROR: ดาวน์โหลด Google Sheets ไม่สำเร็จ
+```
+
+สาเหตุที่ตรวจพบคือสภาพแวดล้อมดังกล่าวไม่สามารถ resolve DNS ของ `docs.google.com` ได้ (`NameResolutionError`) จึงไม่สามารถเรียก Google Sheets XLSX export ได้ ปัญหาไม่ได้เกิดจากรูปแบบ `SET_DATA_URL`, โครงสร้าง workbook หรือข้อมูลกองทุน
+
+แนวทางแก้ไข:
+
+1. ตรวจสอบว่า `.env` มี `SET_DATA_URL` ที่เป็น Google Sheets URL รูปแบบถูกต้อง และมี `SEC_API_KEY_FUND`
+2. ตรวจสอบว่าเครื่องหรือ runtime สามารถ resolve และเชื่อมต่อ `docs.google.com` ผ่าน HTTPS ได้
+3. หากใช้ sandbox หรือ runtime ที่จำกัดเครือข่าย ให้เปิดสิทธิ์เครือข่ายภายนอก sandbox แล้วรัน `./update.sh` ใหม่
+4. ห้ามใช้ snapshot เก่าแทน snapshot ใหม่เมื่อการดาวน์โหลดล้มเหลว
+
+หลังเปิดใช้เครือข่ายภายนอก sandbox แล้ว `./update.sh` ดาวน์โหลด snapshot และสร้าง `downloads/All-ThaiMutualFunds-MTFS_output.xlsx` ได้สำเร็จ โดยไม่ต้องแก้ไข logic ของสคริปต์
