@@ -43,7 +43,7 @@ URL ต้องอ่านได้โดยไม่ลงชื่อเข�
 | `START @README.md` | พิมพ์ในแชต | อ่าน README และทบทวน guideline ก่อนรอคำสั่ง |
 | `UPDATE` | `./update.sh` | ดาวน์โหลด snapshot ตรวจข้อมูล และแสดงรายงานกองทุน |
 | `UPDATE/<AKA>` | `./update.sh UPDATE/B-INNOTECH` | แสดงรายงานเฉพาะกองทุนที่ระบุ |
-| `CANDIDATE` | `./candidate.sh` | จุดเริ่มต้นสำหรับการพัฒนา Candidate ในอนาคต |
+| `CANDIDATE` | `./candidate.sh` | คัดรายการตามเกณฑ์ CANDIDATE 7 ข้อและแสดงผลสูงสุด 20 อันดับ |
 | `REVIEW` | พิมพ์ในแชต | ทบทวน guideline อีกครั้ง |
 
 ## 📌 ข้อมูลสำคัญ
@@ -99,7 +99,15 @@ PROJECT ID  : <PROJECT ID>
 
 ### 3) รูปแบบ `CANDIDATE`
 
-ส่วนนี้ยังไม่มีเนื้อหาการคัด Candidate ที่ทำงานจริงในรุ่นปัจจุบัน
+```text
+ผลการค้นหา CANDIDATE (PRE-ENTRY-Like Pattern) — <n> เหรียญ
+ผ่านเกณฑ์ CANDIDATE 7 ข้อ เรียงตาม MACD Delta (W) สูงสุด — รอ 1H Trigger ยืนยัน
+| # | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet)) |
+|---:|---|---|---:|---:|---|---|---|
+| 1 | [<AKA>](https://www.tradingview.com/symbols/<AKA>/) | <Tier> | <ราคา> | <MACD Δ(W)> | <Entry Zone> | <1H Trigger> | <PTR หรือ ⚫ N/A> |
+```
+
+`n` คือจำนวนรายการทั้งหมดที่ผ่านเกณฑ์ก่อนจำกัดการแสดงผล รายงานจะแสดงไม่เกิน 20 อันดับและเรียง `MACD Δ(W)` จากมากไปน้อย ชื่อรายการเป็นลิงก์ TradingView ค่า `Tier` ใช้ `PROJECT ID` โดยตรง ส่วน `Liquidity(PTR (latest Factsheet))` ใช้ค่า `portfolio_turnover_ratio` ล่าสุดจาก SEC API หรือ `⚫ N/A` เมื่อไม่มีข้อมูลยืนยัน
 
 ## ✅ ข้อกำหนดบังคับเรื่องการแสดงผล (Output Contract)
 
@@ -108,7 +116,7 @@ PROJECT ID  : <PROJECT ID>
 - ใช้คำสั่งและรูปแบบสั่งงานตามที่ระบุในเอกสารนี้เท่านั้น
 - `UPDATE` ใช้ schema รายงานกองทุนรวมไทยตามที่กำหนด
 - `UPDATE/<AKA>` ต้องแสดง metadata ของกองทุนที่ร้องขอตามลำดับ ก่อนแสดงตาราง
-- `CANDIDATE` ใช้ schema Candidate เท่านั้น เมื่อมีการพัฒนาการทำงานส่วนนี้
+- `CANDIDATE` ใช้ schema Candidate เท่านั้น และไม่แสดง metadata หรือกลุ่มของ `UPDATE`
 - รายงานที่แสดงในแชตต้องเป็น Markdown ที่ render ได้จริง โดยคงข้อมูลทุกแถว คอลัมน์ และคำเตือนตามผลคำสั่ง
 - เมื่อไม่ได้รับข้อมูล credentials หรือดาวน์โหลดล้มเหลว ให้รายงานตามข้อเท็จจริงเท่านั้น ไม่อ้างว่าทำงานสำเร็จหรือใช้ข้อมูลเก่าแทน
 - การรายงานต้องยึด snapshot ล่าสุดที่เพิ่งดาวน์โหลดได้เท่านั้น ห้ามใช้ HTTP cache หรือข้อมูลเก่ามาบิดเบือนผลลัพธ์
@@ -121,7 +129,17 @@ PROJECT ID  : <PROJECT ID>
 
 การคำนวณปัจจุบันใช้ข้อมูล NAV ย้อนหลังประมาณ 5 ปี, ใช้ bucket 30 วันเป็นชุดข้อมูล W, ใช้ RSI และ MACD delta เป็น signals พื้นฐาน และกำหนดสถานะรายงานตาม logic ใน [fund_update.sh](./fund_update.sh)
 
-`CANDIDATE` ยังเป็น entrypoint ที่สงวนไว้สำหรับการพัฒนาต่อ และยังไม่แสดงรายการกองทุนในรุ่นนี้
+`CANDIDATE` ผ่านเมื่อครบทุกเงื่อนไข 7 ข้อ:
+
+1. `TREND(W) = UP`
+2. `TREND(D) = UP`
+3. `RSI(W) > 50`
+4. `MACD_HIST_DELTA(W) > 0`
+5. `RSI(D) < 70`
+6. `EMA9(W) > EMA21(W)`
+7. `SIGNAL_VOLUME` เป็น `BUY` อย่างน้อยหนึ่ง timeframe ใน `W/D/4H/1H`
+
+ผลลัพธ์ใช้คอลัมน์ตามลำดับ `# | เหรียญ | Tier | ราคา (THB) | MACD Δ(W) | Entry Zone (4H) | 1H Trigger | Liquidity(PTR (latest Factsheet))` โดย `Tier = PROJECT ID` และแสดงคำเตือนท้ายรายงานเมื่อ SEC API ไม่ส่งข้อมูล PTR
 
 ## 💧 แหล่งข้อมูล PTR
 
